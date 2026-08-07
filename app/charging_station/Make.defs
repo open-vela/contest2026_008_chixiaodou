@@ -1,0 +1,7 @@
+############################################################################
+# Contest 2026 team 008 charging station - Make.defs
+############################################################################
+
+ifneq ($(CONFIG_LVX_USE_DEMO_CONTEST2026_008_CHARGING_STATION),)
+CONFIGURED_APPS += $(APPDIR)/packages/demos/contest2026_008_charging_station
+endif

@@ -1,14 +1,14 @@
 ############################################################################
-# Contest 2026 team 000 hello app - Makefile
+# Contest 2026 team 008 charging station - Makefile
 ############################################################################
 
 include $(APPDIR)/Make.defs
 
-PROGNAME  = hello_app
+PROGNAME  = charging_station
 PRIORITY  = SCHED_PRIORITY_DEFAULT
 STACKSIZE = 2048
-MODULE    = $(CONFIG_LVX_USE_DEMO_CONTEST2026_008_HELLO_APP)
+MODULE    = $(CONFIG_LVX_USE_DEMO_CONTEST2026_008_CHARGING_STATION)
 
-MAINSRC = hello_app_main.c
+MAINSRC = charging_station_main.c
 
 include $(APPDIR)/Application.mk
