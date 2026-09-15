@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>Charging Station UI Preview</title>
+<style>
+  :root {
+    --bg:            #FFFFFF;
+    --card:          #F3F4F6;
+    --card2:         #E5E7EB;
+    --theme:         #2563EB;
+    --ok:            #16A34A;
+    --warn:          #EA580C;
+    --err:           #DC2626;
+    --text:          #1F2937;
+    --dim:           #6B7280;
+
+    --iron-bg:       #FFFFFF;
+    --iron-panel:    #F3F7FB;
+    --iron-panel2:   #E4EEF7;
+    --iron-ring:     #C9D8E6;
+    --iron-accent:   #168DCA;
+    --iron-text:     #1F2937;
+    --iron-dim:      #64748B;
+
+    --badge-pd:      #2563EB;
+    --badge-qc:      #16A34A;
+    --badge-fcp:     #EA580C;
+    --badge-afc:     #7C3AED;
+    --badge-idle:    #9CA3AF;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #1a1a1a;
+    font-family: "Montserrat", "DejaVu Sans", Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px;
+    gap: 16px;
+  }
+
+  h1 { color: #e5e5e5; font-size: 15px; font-weight: 500; letter-spacing: 1px; }
+  .hint { color: #888; font-size: 12px; }
+
+  /* ---- 屏幕 ---- */
+  .screen {
+    width: 480px;
+    height: 272px;
+    background: var(--bg);
+    position: relative;
+    overflow: hidden;
+    border-radius: 6px;
+    box-shadow: 0 0 0 2px #333, 0 8px 32px rgba(0,0,0,.6);
+  }
+
+  /* ---- 顶栏 ---- */
+  .topbar {
+    position: absolute; left: 0; top: 0;
+    width: 480px; height: 30px;
+    background: var(--card);
+    display: flex; align-items: center;
+    font-size: 12px;
+    color: var(--text);
+  }
+  .logo {
+    width: 22px; height: 22px; margin-left: 5px;
+    border-radius: 4px;
+    background: linear-gradient(135deg, #2563EB, #168DCA);
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 11px; font-weight: 700;
+  }
+  .title { margin-left: 6px; font-size: 12px; }
+  .topbar .right {
+    position: absolute; right: 8px;
+    display: flex; gap: 0; align-items: center;
+    font-size: 12px;
+  }
+  .topbar .right span { position: absolute; white-space: nowrap; }
+  .t-time    { right: 8px;   color: var(--text); }
+  .t-weather { right: 70px;  color: var(--warn); }
+  .t-localt  { right: 110px; color: var(--ok); }
+
+  /* ---- Tab 栏 ---- */
+  .tabbar {
+    position: absolute; left: 0; top: 30px;
+    width: 480px; height: 32px;
+    background: var(--card);
+    display: flex; align-items: stretch;
+    border-bottom: 1px solid var(--card2);
+  }
+  .tab {
+    flex: 0 0 auto;
+    padding: 0 16px;
+    display: flex; align-items: center;
+    font-size: 12px; color: var(--dim);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+  }
+  .tab.active {
+    color: var(--theme);
+    border-bottom-color: var(--theme);
+    background: var(--bg);
+  }
+
+  /* ---- Tab 内容区 ---- */
+  .page {
+    position: absolute; left: 0; top: 62px;
+    width: 480px; height: 210px;
+    background: var(--iron-bg);
+    display: none;
+  }
+  .page.active { display: block; }
+
+  /* ================= Charger ================= */
+  .banner {
+    position: absolute; left: 10px; top: 2px;
+    font-size: 11px; color: var(--iron-dim);
+    font-weight: 500; letter-spacing: .3px;
+  }
+  .banner.live { color: var(--ok); }
+
+  .card {
+    position: absolute;
+    background: var(--iron-panel);
+    border-radius: 10px;
+  }
+  .ch-name { position: absolute; left: 8px;  top: 5px;  font-size: 12px; color: var(--iron-text); font-weight: 600; }
+  .ch-temp { position: absolute; right: 7px; top: 5px;  font-size: 11px; color: var(--iron-dim); }
+  .ch-badge{
+    position: absolute; left: 43px; top: 4px;
+    font-size: 11px; color: #fff;
+    border-radius: 5px; padding: 1px 4px;
+    background: var(--badge-idle);
+    font-weight: 600;
+  }
+  .ch-port { position: absolute; left: 8px;  font-size: 11px; color: var(--iron-dim); }
+  .ch-vals { position: absolute; left: 87px; font-size: 11px; color: var(--iron-dim); white-space: nowrap; }
+  .ch-vals.live { color: var(--iron-text); }
+
+  /* ================= Iron ================= */
+  .iron-panel {
+    position: absolute; left: 7px; top: 6px;
+    width: 248px; height: 165px;
+    background: var(--iron-panel);
+    border-radius: 12px;
+  }
+  .iron-title { position: absolute; left: 13px; top: 11px; font-size: 11px; color: var(--iron-dim); }
+
+  .pid-btn {
+    position: absolute; right: 6px; top: 7px;
+    width: 80px; height: 24px;
+    background: var(--iron-panel2);
+    border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; color: var(--iron-text); font-weight: 600;
+    cursor: pointer;
+  }
+
+  .status-badge {
+    position: absolute; left: 168px; top: 10px;
+    font-size: 11px; font-weight: 600;
+    background: var(--iron-panel2);
+    border-radius: 6px;
+    padding: 2px 5px;
+    color: var(--err);
+  }
+  .status-badge.ready { color: var(--ok); }
+  .status-badge.sleep { color: var(--warn); }
+  .status-badge.off   { color: var(--dim); }
+
+  .iron-temp  { position: absolute; left: 13px; top: 37px; font-size: 26px; font-weight: 600; color: var(--iron-accent); line-height: 1; }
+  .iron-unit  { position: absolute; left: 89px; top: 51px; font-size: 12px; color: var(--iron-dim); }
+  .iron-cur   { position: absolute; left: 14px; top: 76px; font-size: 11px; color: var(--iron-dim); }
+  .iron-target{ position: absolute; left: 122px; top: 45px; font-size: 12px; color: var(--iron-text); font-weight: 600; }
+
+  .slider {
+    position: absolute; left: 13px; top: 105px;
+    width: 164px; height: 12px;
+    background: var(--iron-ring);
+    border-radius: 6px;
+  }
+  .slider-fill {
+    position: absolute; left: 0; top: 0; height: 12px;
+    background: var(--iron-accent);
+    border-radius: 6px;
+  }
+  .slider-knob {
+    position: absolute; top: -1px;
+    width: 14px; height: 14px;
+    background: var(--iron-text);
+    border-radius: 50%;
+    transform: translateX(-7px);
+  }
+  .slider-min { position: absolute; left: 13px;  top: 124px; font-size: 11px; color: var(--iron-dim); }
+  .slider-max { position: absolute; left: 128px; top: 124px; font-size: 11px; color: var(--iron-dim); }
+
+  .step-btn {
+    position: absolute;
+    width: 28px; height: 28px;
+    border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px; font-weight: 600;
+    cursor: pointer;
+  }
+  .step-minus { left: 180px; top: 96px; background: var(--iron-panel2); color: var(--iron-text); }
+  .step-plus  { left: 216px; top: 96px; background: var(--iron-accent); color: #fff; }
+
+  .heat-btn {
+    position: absolute; left: 158px; top: 137px;
+    width: 80px; height: 24px;
+    border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 600;
+    background: var(--iron-accent); color: #fff;
+    cursor: pointer;
+  }
+
+  /* 功率圆盘 */
+  .dial {
+    position: absolute; left: 345px; top: 4px;
+    width: 112px; height: 112px;
+    background: var(--iron-panel);
+    border-radius: 50%;
+  }
+  .dial-ring {
+    position: absolute; left: 6px; top: 6px;
+    width: 100px; height: 100px;
+    border-radius: 50%;
+    /* 对应 LVGL: rotation=270, bg_angles 0..360, value=77%
+       -> 从正上方开始顺时针扫过 277deg */
+    background: conic-gradient(from 270deg,
+                  var(--iron-accent) 0deg 277deg,
+                  var(--iron-ring) 277deg 360deg);
+    -webkit-mask: radial-gradient(circle, transparent 41px, #000 41px);
+            mask: radial-gradient(circle, transparent 41px, #000 41px);
+  }
+  .dial-pct  { position: absolute; left: 0; width: 112px; top: 26px; text-align: center; font-size: 15px; font-weight: 600; color: var(--iron-text); }
+  .dial-lbl  { position: absolute; left: 0; width: 112px; top: 58px; text-align: center; font-size: 11px; color: var(--iron-dim); }
+  .dial-watt { position: absolute; left: 0; width: 112px; top: 76px; text-align: center; font-size: 11px; font-weight: 600; color: var(--iron-accent); }
+
+  .preset {
+    position: absolute;
+    width: 88px; height: 21px;
+    background: var(--iron-panel2);
+    border: 1px solid var(--iron-ring);
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; color: var(--iron-text);
+    cursor: pointer;
+  }
+  .preset.sel { background: var(--iron-accent); color: #fff; border-color: var(--iron-accent); }
+
+  /* ================= Info ================= */
+  .icard {
+    position: absolute;
+    background: var(--iron-panel);
+    border-radius: 12px;
+  }
+  .icard2 { background: var(--iron-panel2); border-radius: 10px; }
+
+  .ilbl { position: absolute; font-size: 11px; color: var(--iron-dim); }
+  .ival { position: absolute; color: var(--iron-text); }
+  .ival-accent { color: var(--iron-accent); }
+
+  /* ---- 图例 ---- */
+  .legend {
+    color: #999; font-size: 11px; line-height: 1.9;
+    max-width: 480px;
+  }
+  .legend b { color: #ccc; }
+  .legend code { background: #2a2a2a; padding: 1px 4px; border-radius: 3px; color: #9cd; }
+</style>
+</head>
+<body>
+
+<h1>CHARGING STATION — UI PREVIEW 480×272</h1>
+<div class="hint">点击下方 Tab 切换页面 · 数值为示例数据</div>
+
+<div class="screen">
+
+  <!-- ========== 顶栏 ========== -->
+  <div class="topbar">
+    <div class="logo">CS</div>
+    <div class="title">Charging Station</div>
+    <div class="right">
+      <span class="t-localt">29C</span>
+      <span class="t-weather">27C</span>
+      <span class="t-time">14:23</span>
+    </div>
+  </div>
+
+  <!-- ========== Tab 栏 ========== -->
+  <div class="tabbar">
+    <div class="tab active" data-tab="charger">Charger</div>
+    <div class="tab"        data-tab="iron">Iron</div>
+    <div class="tab"        data-tab="info">Info</div>
+  </div>
+
+  <!-- ========== Charger 页 ========== -->
+  <div class="page active" id="page-charger">
+    <div class="banner live">INPUT  24.0V  3.25A  78W</div>
+
+    <!-- 通道 1：快充中 -->
+    <div class="card" style="left:8px;  top:20px; width:228px; height:74px;">
+      <div class="ch-name">CH1</div>
+      <div class="ch-badge" style="background:var(--badge-pd);">PD</div>
+      <div class="ch-temp">TEMP 42°C</div>
+      <div class="ch-port" style="top:29px;">USB-C</div>
+      <div class="ch-vals live" style="top:29px;">20.0V 3.00A 60.0W</div>
+      <div class="ch-port" style="top:50px;">USB-A</div>
+      <div class="ch-vals" style="top:50px;">--.-V  --.--A  --.-W</div>
+    </div>
+
+    <!-- 通道 2：QC 快充 -->
+    <div class="card" style="left:244px; top:20px; width:228px; height:74px;">
+      <div class="ch-name">CH2</div>
+      <div class="ch-badge" style="background:var(--badge-qc);">QC3.0</div>
+      <div class="ch-temp">TEMP 38°C</div>
+      <div class="ch-port" style="top:29px;">USB-C</div>
+      <div class="ch-vals live" style="top:29px;">9.0V 1.67A 15.0W</div>
+      <div class="ch-port" style="top:50px;">USB-A</div>
+      <div class="ch-vals" style="top:50px;">--.-V  --.--A  --.-W</div>
+    </div>
+
+    <!-- 通道 3：空 -->
+    <div class="card" style="left:8px;  top:102px; width:228px; height:74px;">
+      <div class="ch-name">CH3</div>
+      <div class="ch-badge">IDLE</div>
+      <div class="ch-temp">TEMP N/A</div>
+      <div class="ch-port" style="top:29px;">USB-C</div>
+      <div class="ch-vals" style="top:29px;">--.-V  --.--A  --.-W</div>
+      <div class="ch-port" style="top:50px;">USB-A</div>
+      <div class="ch-vals" style="top:50px;">--.-V  --.--A  --.-W</div>
+    </div>
+
+    <!-- 通道 4：A 口充电 -->
+    <div class="card" style="left:244px; top:102px; width:228px; height:74px;">
+      <div class="ch-name">CH4</div>
+      <div class="ch-badge" style="background:var(--badge-fcp);">FCP</div>
+      <div class="ch-temp">TEMP 40°C</div>
+      <div class="ch-port" style="top:29px;">USB-C</div>
+      <div class="ch-vals" style="top:29px;">--.-V  --.--A  --.-W</div>
+      <div class="ch-port" style="top:50px;">USB-A</div>
+      <div class="ch-vals live" style="top:50px;">5.2V 1.80A 9.4W</div>
+    </div>
+  </div>
+
+  <!-- ========== Iron 页 ========== -->
+  <div class="page" id="page-iron">
+    <div class="iron-panel">
+      <div class="iron-title">SOLDERING IRON</div>
+      <div class="pid-btn" onclick="alert('PID 参数弹窗\n\nP / I / D / SLEEP 四组参数，+/- 调节\nCANCEL 回滚，APPLY 生效')">PID</div>
+      <div class="status-badge ready">READY</div>
+
+      <div class="iron-temp">348</div>
+      <div class="iron-unit">°C</div>
+      <div class="iron-cur">CURRENT</div>
+      <div class="iron-target">TARGET 350°C</div>
+
+      <div class="slider">
+        <div class="slider-fill" style="width:112px;"></div>
+        <div class="slider-knob" style="left:112px;"></div>
+      </div>
+      <div class="slider-min">100°C</div>
+      <div class="slider-max">480°C</div>
+
+      <div class="step-btn step-minus">−</div>
+      <div class="step-btn step-plus">+</div>
+      <div class="heat-btn">HEAT ON</div>
+    </div>
+
+    <!-- 功率圆盘 -->
+    <div class="dial">
+      <div class="dial-ring"></div>
+      <div class="dial-pct">77%</div>
+      <div class="dial-lbl">POWER</div>
+      <div class="dial-watt">58W</div>
+    </div>
+
+    <!-- 温度预设 -->
+    <div class="preset"        style="left:270px; top:122px;">300°C</div>
+    <div class="preset sel"    style="left:366px; top:122px;">350°C</div>
+    <div class="preset"        style="left:270px; top:146px;">380°C</div>
+    <div class="preset"        style="left:366px; top:146px;">420°C</div>
+  </div>
+
+  <!-- ========== Info 页 ========== -->
+  <div class="page" id="page-info">
+    <!-- 环境卡 -->
+    <div class="icard" style="left:8px; top:6px; width:224px; height:165px;">
+      <div class="ilbl" style="left:14px; top:12px;">ENVIRONMENT</div>
+      <div class="ilbl" style="left:14px; top:42px;">LOCAL TIME</div>
+      <div class="ival ival-accent" style="left:14px; top:61px; font-size:26px; font-weight:600; line-height:1;">14:23</div>
+      <div class="ilbl" style="left:14px; top:111px;">DATE</div>
+      <div class="ival" style="left:14px; top:132px; font-size:11px;">2026-09-13  SATURDAY</div>
+    </div>
+
+    <!-- 天气卡 -->
+    <div class="icard" style="left:240px; top:6px; width:232px; height:78px;">
+      <div class="ilbl" style="left:12px; top:10px;">WEATHER</div>
+      <div class="ival" style="left:12px; top:34px; font-size:11px;">SUNNY / NINGBO</div>
+      <div class="ival ival-accent" style="left:160px; top:30px; font-size:15px; font-weight:600;">27°C</div>
+    </div>
+
+    <!-- 本地温度卡 -->
+    <div class="icard icard2" style="left:240px; top:92px; width:112px; height:79px;">
+      <div class="ilbl" style="left:10px; top:10px;">LOCAL TEMP</div>
+      <div class="ival" style="left:10px; top:37px; font-size:15px; font-weight:600;">29°C</div>
+    </div>
+
+    <!-- 湿度卡 -->
+    <div class="icard icard2" style="left:360px; top:92px; width:112px; height:79px;">
+      <div class="ilbl" style="left:10px; top:10px;">HUMIDITY</div>
+      <div class="ival" style="left:10px; top:37px; font-size:15px; font-weight:600;">62%</div>
+    </div>
+  </div>
+
+</div>
+
+<div class="legend">
+  <b>说明</b><br>
+  · 尺寸、坐标、颜色、字号均按 <code>charging_station_ui.c</code> 实际值 1:1 还原<br>
+  · Charger 页顶部：INA226 正常时显示 <code>INPUT 24.0V 3.25A 78W</code>（有电流变绿），失败回退为 "CHARGING OUTPUTS"<br>
+  · Iron 页圆盘：<code>77%</code> 是 PID 占空比，<code>58W</code> 是 INA226 实测功率（TCA CH5）<br>
+  · 协议徽章颜色：PD=蓝 QC=绿 FCP=橙 AFC=紫 IDLE=灰
+</div>
+
+<script>
+  document.querySelectorAll('.tab').forEach(t => {
+    t.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+      document.querySelectorAll('.page').forEach(x => x.classList.remove('active'));
+      t.classList.add('active');
+      document.getElementById('page-' + t.dataset.tab).classList.add('active');
+    });
+  });
+</script>
+
+</body>
+</html>

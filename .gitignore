@@ -1,0 +1,31 @@
+# ============================================================
+# 参赛仓忽略规则
+#
+# 忽略编译产物，避免误提交到参赛仓。
+# 参考仓内 .gitignore.example，并补充 NuttX/Application.mk 特有的产物。
+#
+# 注意：logs/ 下导出的 AI Coding 日志必须提交，不要忽略！
+# ============================================================
+
+# 通用构建产物
+build/
+out/
+*.o
+*.a
+*.elf
+*.hex
+*.bin
+*.map
+
+# NuttX Application.mk 生成的构建产物
+# （.o 文件带完整路径前缀，例如 iron.c.home.xie...app.charging_station.o，
+#   上面的 *.o 已能匹配；这里补充其余构建状态文件）
+Make.dep
+.depend
+.built
+*.d
+
+# 编辑器 / 系统临时文件
+*~
+*.swp
+.DS_Store

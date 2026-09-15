@@ -8,3 +8,6 @@ config LVX_USE_DEMO_CONTEST2026_008_CHARGING_STATION
 	default n
 	---help---
 		Enable the contest 2026 team 008 charging station demo.
+		The AI assistant window calls a cloud chat API; build the
+		mimo provider (which supplies the HTTPS client) when the
+		network stack is available.
