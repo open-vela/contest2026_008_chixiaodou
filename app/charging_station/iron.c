@@ -185,8 +185,12 @@ static uint16_t max6675_read(void)
       iron_spi_delay();
     }
 
-  /* CS high to end */
+  /* CS high to end.  Leave SCK low: the MAX6675 advances SO on every falling
+   * edge, so a clock left high would turn the first write of the next read
+   * into a spurious edge and shift that whole frame one bit. */
+
   stm32_gpiowrite(IRON_GPIO_CS, true);
+  stm32_gpiowrite(IRON_GPIO_SCK, false);
   iron_spi_delay();
 
   return value;
