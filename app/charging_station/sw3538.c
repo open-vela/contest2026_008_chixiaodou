@@ -33,6 +33,7 @@
 
 #define SW3538_REG_PROTO         0x09
 #define SW3538_REG_ONLINE        0x0d
+#define SW3538_REG_I2C_EN        0x10
 #define SW3538_REG_ADC_SEL       0x40
 #define SW3538_REG_ADC_LO        0x41
 #define SW3538_REG_ADC_HI        0x42
@@ -115,6 +116,35 @@ static int sw3538_write_reg(uint8_t channel, uint8_t reg, uint8_t val)
   msg.buffer = tx;
   msg.length = sizeof(tx);
   return cs_i2c_transfer(channel, &msg, 1);
+}
+
+/****************************************************************************
+ * Name: sw3538_unlock
+ *
+ * Enable I2C writes on one chip.  Register list 2.10 (Reg0x10, bits 7-5)
+ * requires the sequence 0x20 -> 0x40 -> 0x80 before any other register may
+ * be written to; reads need no unlock.  Every SW3538 sits behind its own
+ * multiplexer channel, so the sequence has to be replayed on whichever
+ * channel is about to be written, and it must precede every write to
+ * Reg0x40 or the ADC channel change is silently ignored.
+ ****************************************************************************/
+
+static int sw3538_unlock(uint8_t channel)
+{
+  static const uint8_t seq[3] = { 0x20, 0x40, 0x80 };
+  int i;
+  int ret;
+
+  for (i = 0; i < 3; i++)
+    {
+      ret = sw3538_write_reg(channel, SW3538_REG_I2C_EN, seq[i]);
+      if (ret < 0)
+        {
+          return ret;
+        }
+    }
+
+  return OK;
 }
 
 static int sw3538_adc_code(uint8_t channel, uint8_t adc, FAR uint16_t *code)
@@ -238,6 +268,16 @@ int sw3538_read_status_channel(uint8_t channel,
 
   memset(st, 0, sizeof(*st));
 
+  /* Reg0x40 is a write; the chip has to be write-enabled first or the ADC
+   * channel selection does not take effect and every field would report the
+   * same latched value. */
+
+  ret = sw3538_unlock(channel);
+  if (ret < 0)
+    {
+      return ret;
+    }
+
   ret = sw3538_read_regs(channel, SW3538_REG_PROTO, &proto, 1);
   if (ret < 0)
     {
@@ -292,6 +332,36 @@ int sw3538_read_status_channel(uint8_t channel,
 int sw3538_read_status(FAR struct sw3538_status_s *st)
 {
   return sw3538_read_status_channel(0, st);
+}
+
+/****************************************************************************
+ * Name: sw3538_probe_channel
+ *
+ * Cheap presence check on one multiplexer channel: write-enable the chip and
+ * read back its protocol register.  Used to pick up a module that is plugged
+ * in after boot, so it must not rely on any state left by an earlier read.
+ ****************************************************************************/
+
+int sw3538_probe_channel(uint8_t channel)
+{
+  uint8_t proto;
+
+  if (channel >= SW3538_CHANNEL_COUNT)
+    {
+      return -EINVAL;
+    }
+
+  if (sw3538_unlock(channel) < 0)
+    {
+      return -ENODEV;
+    }
+
+  if (sw3538_read_regs(channel, SW3538_REG_PROTO, &proto, 1) < 0)
+    {
+      return -ENODEV;
+    }
+
+  return OK;
 }
 
 const char *sw3538_proto_name(uint8_t proto)

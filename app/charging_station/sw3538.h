@@ -33,6 +33,11 @@ int  sw3538_init(void);
 int  sw3538_read_status(FAR struct sw3538_status_s *st);
 int  sw3538_read_status_channel(uint8_t channel,
                                 FAR struct sw3538_status_s *st);
+
+/* Presence check on one multiplexer channel, for hot-plug re-probe. */
+
+int  sw3538_probe_channel(uint8_t channel);
+
 const char *sw3538_proto_name(uint8_t proto);
 
 #endif /* __SW3538_H */

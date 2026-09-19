@@ -28,12 +28,19 @@
  ****************************************************************************/
 
 #define INA226_RETRY_TICKS  50   /* 50 x 100ms = 5s between re-probes */
+#define SW3538_RETRY_TICKS  50   /* 50 x 100ms = 5s between hot-plug probes */
+#define SW3538_FAIL_LIMIT   5    /* sweeps failed before a channel is dropped */
 
 /****************************************************************************
  * Private Data
  ****************************************************************************/
 
 static bool g_sw3538_ok[4];
+
+/* Consecutive read failures per channel.  A module that is unplugged falls
+ * back to the slow presence probe instead of failing on every sweep. */
+
+static uint8_t g_sw3538_fail[4];
 
 /* Channel read by the next tick; the four SW3538 modules are polled in
  * rotation so no single tick carries the whole bus sweep. */
@@ -70,10 +77,24 @@ static void sw3538_poll_channel(int channel)
   ret = sw3538_read_status_channel(channel, &st);
   if (ret < 0)
     {
-      syslog(LOG_WARNING, "SW3538 CH%d read failed: %d\n", channel + 1, ret);
       cs_ui_set_channel_online(channel, false, false);
+
+      /* Drop a module that has stopped answering back to the slow presence
+       * probe, so a card that was unplugged does not log a failure on every
+       * sweep and can be picked up again when it is plugged back in. */
+
+      if (++g_sw3538_fail[channel] >= SW3538_FAIL_LIMIT)
+        {
+          g_sw3538_fail[channel] = 0;
+          g_sw3538_ok[channel] = false;
+          syslog(LOG_WARNING, "Charging Station: SW3538 CH%d lost\n",
+                 channel + 1);
+        }
+
       return;
     }
+
+  g_sw3538_fail[channel] = 0;
 
   cs_ui_set_channel_ports(channel, (float)st.vout_mv / 1000.0f,
                           (float)st.ic_ma / 1000.0f,
@@ -88,6 +109,36 @@ static void sw3538_poll_channel(int channel)
          "temp=%s%dC proto=%d(%s)\n", channel + 1, st.vout_mv,
          st.ic_ma, st.ia_ma, st.temp_valid ? "" : "N/A ", st.temp_c,
          st.proto, sw3538_proto_name(st.proto));
+}
+
+/****************************************************************************
+ * Name: sw3538_retry_absent
+ *
+ * Presence-probe every channel that is not currently up, so a module plugged
+ * in after boot is picked up without a reset.  Channel 3 is the one that
+ * matters in practice: its card sits over the RJ45 jack, so it is left out
+ * unless Ethernet is unused, and it may be fitted later while running.
+ ****************************************************************************/
+
+static void sw3538_retry_absent(void)
+{
+  int channel;
+
+  for (channel = 0; channel < 4; channel++)
+    {
+      if (g_sw3538_ok[channel])
+        {
+          continue;
+        }
+
+      if (sw3538_probe_channel(channel) == OK)
+        {
+          g_sw3538_ok[channel] = true;
+          g_sw3538_fail[channel] = 0;
+          syslog(LOG_INFO, "Charging Station: SW3538 CH%d detected "
+                 "(hot-plug)\n", channel + 1);
+        }
+    }
 }
 
 /****************************************************************************
@@ -182,11 +233,13 @@ static void data_timer_cb(lv_timer_t *timer)
       ina226_poll();
     }
 
-  /* Re-probe monitors that were absent at boot. */
+  /* Re-probe devices that were absent at boot: the power monitors, and any
+   * SW3538 module that has been plugged in since. */
   if (++retry >= INA226_RETRY_TICKS)
     {
       retry = 0;
       cs_ina226_retry();
+      sw3538_retry_absent();
     }
 
   (void)timer;
